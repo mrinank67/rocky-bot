@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rocky — Project Hail Mary Chatbot</title>
+  <meta name="description" content="Chat with Rocky, the Eridian alien from Project Hail Mary. Hear alien chords generated in real-time via the Web Audio API." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ===================================================================
+       Design Tokens
+       =================================================================== */
+    :root {
+      /* Palette — deep-space purples & alien greens */
+      --bg-primary:    #0a0b12;
+      --bg-secondary:  #12131f;
+      --bg-card:       #181a2a;
+      --bg-input:      #1e2035;
+      --border:        rgba(255, 255, 255, 0.06);
+      --border-focus:  rgba(120, 200, 255, 0.35);
+
+      --text-primary:  #e8eaf0;
+      --text-secondary:#8b8fa8;
+      --text-muted:    #555874;
+
+      --accent:        #6ee7b7;         /* alien green */
+      --accent-dim:    rgba(110,231,183,0.12);
+      --accent-glow:   rgba(110,231,183,0.25);
+
+      --rocky:         #a78bfa;         /* Eridian purple */
+      --rocky-dim:     rgba(167,139,250,0.10);
+      --rocky-glow:    rgba(167,139,250,0.20);
+
+      --user:          #60a5fa;         /* human blue */
+      --user-dim:      rgba(96,165,250,0.10);
+
+      --danger:        #f87171;
+      --radius:        14px;
+      --radius-sm:     10px;
+      --font:          'Outfit', system-ui, sans-serif;
+      --mono:          'JetBrains Mono', monospace;
+    }
+
+    /* ===================================================================
+       Reset & Base
+       =================================================================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    /* Animated star-field background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(1.2px 1.2px at 20% 30%, rgba(110,231,183,0.25) 50%, transparent 50%),
+        radial-gradient(1px   1px   at 60% 70%, rgba(167,139,250,0.20) 50%, transparent 50%),
+        radial-gradient(0.8px 0.8px at 80% 20%, rgba(96,165,250,0.18)  50%, transparent 50%),
+        radial-gradient(1px   1px   at 40% 80%, rgba(255,255,255,0.08) 50%, transparent 50%),
+        radial-gradient(0.6px 0.6px at 10% 60%, rgba(110,231,183,0.15) 50%, transparent 50%),
+        radial-gradient(1.5px 1.5px at 90% 50%, rgba(167,139,250,0.12) 50%, transparent 50%);
+      background-size: 250px 250px, 300px 300px, 200px 200px, 350px 350px, 280px 280px, 320px 320px;
+      animation: drift 90s linear infinite;
+    }
+
+    @keyframes drift {
+      to { background-position: 500px 1000px, -300px 600px, 400px -500px, -200px 800px, 600px 400px, -400px -300px; }
+    }
+
+    /* ===================================================================
+       App Shell
+       =================================================================== */
+    #app {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 780px;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+
+    /* ===================================================================
+       Header
+       =================================================================== */
+    header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      background: rgba(10,11,18,0.75);
+    }
+
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--rocky), var(--accent));
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      box-shadow: 0 0 24px var(--rocky-glow);
+      animation: pulse-glow 3s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px var(--rocky-glow); }
+      50%      { box-shadow: 0 0 36px var(--accent-glow), 0 0 60px var(--rocky-glow); }
+    }
+
+    .header-text h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      background: linear-gradient(90deg, var(--accent), var(--rocky));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-text p {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Status dot */
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-left: auto;
+      box-shadow: 0 0 8px var(--accent);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.3; }
+    }
+
+    /* ===================================================================
+       Chat Container
+       =================================================================== */
+    #chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+
+    /* Scrollbar */
+    #chat-container::-webkit-scrollbar { width: 5px; }
+    #chat-container::-webkit-scrollbar-track { background: transparent; }
+    #chat-container::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 10px; }
+
+    /* ===================================================================
+       Messages
+       =================================================================== */
+    .msg {
+      max-width: 82%;
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      font-size: 0.92rem;
+      line-height: 1.6;
+      animation: msg-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+      word-wrap: break-word;
+    }
+
+    @keyframes msg-in {
+      from { opacity: 0; transform: translateY(12px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)   scale(1); }
+    }
+
+    .msg.rocky {
+      align-self: flex-start;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--rocky);
+      color: var(--text-primary);
+    }
+
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(96,165,250,0.05));
+      border: 1px solid rgba(96,165,250,0.15);
+      border-right: 3px solid var(--user);
+      color: var(--text-primary);
+    }
+
+    .msg-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .msg.rocky .msg-label { color: var(--rocky); }
+    .msg.user  .msg-label { color: var(--user); }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 5px;
+      padding: 8px 0 2px;
+    }
+
+    .typing-indicator span {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--rocky);
+      animation: bounce 1.4s ease-in-out infinite;
+    }
+
+    .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30%           { transform: translateY(-8px); opacity: 1; }
+    }
+
+    /* Welcome card */
+    .welcome-card {
+      text-align: center;
+      padding: 40px 20px;
+      animation: msg-in 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .welcome-card .emoji { font-size: 3rem; margin-bottom: 12px; }
+
+    .welcome-card h2 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      background: linear-gradient(90deg, var(--accent), var(--rocky));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .welcome-card p {
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+      max-width: 420px;
+      margin: 0 auto 20px;
+      line-height: 1.55;
+    }
+
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .suggestion-chip {
+      padding: 8px 16px;
+      font-size: 0.8rem;
+      font-family: var(--font);
+      color: var(--text-secondary);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .suggestion-chip:hover {
+      color: var(--accent);
+      border-color: var(--accent-glow);
+      background: var(--accent-dim);
+      transform: translateY(-1px);
+    }
+
+    /* ===================================================================
+       Audio Visualizer Bar (inline in Rocky messages)
+       =================================================================== */
+    .audio-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 18px;
+      margin-top: 8px;
+    }
+
+    .audio-bars .bar {
+      width: 3px;
+      border-radius: 2px;
+      background: var(--rocky);
+      animation: bar-dance 0.6s ease-in-out infinite alternate;
+    }
+
+    .audio-bars .bar:nth-child(1) { height: 6px;  animation-delay: 0s; }
+    .audio-bars .bar:nth-child(2) { height: 12px; animation-delay: 0.1s; }
+    .audio-bars .bar:nth-child(3) { height: 8px;  animation-delay: 0.2s; }
+    .audio-bars .bar:nth-child(4) { height: 16px; animation-delay: 0.3s; }
+    .audio-bars .bar:nth-child(5) { height: 10px; animation-delay: 0.15s; }
+    .audio-bars .bar:nth-child(6) { height: 14px; animation-delay: 0.25s; }
+    .audio-bars .bar:nth-child(7) { height: 7px;  animation-delay: 0.05s; }
+
+    @keyframes bar-dance {
+      to { height: 18px; opacity: 0.7; }
+    }
+
+    /* ===================================================================
+       Input Area
+       =================================================================== */
+    .input-area {
+      flex-shrink: 0;
+      padding: 16px 20px 24px;
+      border-top: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      background: rgba(10,11,18,0.80);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    #msg-input {
+      flex: 1;
+      padding: 14px 18px;
+      font-size: 0.92rem;
+      font-family: var(--font);
+      color: var(--text-primary);
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      outline: none;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    #msg-input::placeholder { color: var(--text-muted); }
+
+    #msg-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(120,200,255,0.08);
+    }
+
+    #send-btn {
+      width: 48px;
+      height: 48px;
+      border: none;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--rocky));
+      color: #0a0b12;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 20px var(--accent-glow);
+    }
+
+    #send-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 28px var(--accent-glow);
+    }
+
+    #send-btn:active { transform: scale(0.95); }
+
+    #send-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #send-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    /* ===================================================================
+       Responsive
+       =================================================================== */
+    @media (max-width: 600px) {
+      header { padding: 16px 16px 12px; }
+      #chat-container { padding: 16px 12px; }
+      .input-area { padding: 12px 12px 20px; }
+      .msg { max-width: 90%; font-size: 0.88rem; }
+      .welcome-card h2 { font-size: 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header>
+      <div class="avatar" aria-label="Rocky avatar">🕷️</div>
+      <div class="header-text">
+        <h1>Rocky</h1>
+        <p>Eridian Engineer · 40 Eridani</p>
+      </div>
+      <div class="status-dot" title="Online"></div>
+    </header>
+
+    <!-- Chat Messages -->
+    <div id="chat-container">
+      <div class="welcome-card">
+        <div class="emoji">🌌</div>
+        <h2>Good good good, friend!</h2>
+        <p>Rocky here. I am Eridian from star 40 Eridani. I solve problems. You have question? I help! <em>*tap tap tap*</em></p>
+        <div class="suggestions">
+          <button class="suggestion-chip" data-msg="Tell me about Eridians">About Eridians</button>
+          <button class="suggestion-chip" data-msg="What is astrophage?">Astrophage?</button>
+          <button class="suggestion-chip" data-msg="How did you meet Grace?">Meeting Grace</button>
+          <button class="suggestion-chip" data-msg="What is your ship like?">Your Ship</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="input-area">
+      <div class="input-row">
+        <input
+          id="msg-input"
+          type="text"
+          placeholder="Talk to Rocky…"
+          autocomplete="off"
+          aria-label="Message input"
+        />
+        <button id="send-btn" aria-label="Send message">
+          <svg viewBox="0 0 24 24"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- JavaScript                                                        -->
+  <!-- ================================================================= -->
+  <script>
+    const chatContainer = document.getElementById('chat-container');
+    const msgInput      = document.getElementById('msg-input');
+    const sendBtn       = document.getElementById('send-btn');
+
+    // ----- Suggestion Chips -----
+    document.querySelectorAll('.suggestion-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const text = chip.getAttribute('data-msg');
+        msgInput.value = text;
+        sendMessage();
+      });
+    });
+
+    // ----- Send Message -----
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    async function sendMessage() {
+      const text = msgInput.value.trim();
+      if (!text) return;
+
+      // Remove welcome card if present
+      const welcome = document.querySelector('.welcome-card');
+      if (welcome) welcome.remove();
+
+      // Append user bubble
+      appendMsg('user', text);
+      msgInput.value = '';
+      setLoading(true);
+
+      // Show typing indicator
+      const typingEl = showTypingIndicator();
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+          throw new Error(err.detail || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const reply = data.text;
+
+        // Remove typing indicator
+        typingEl.remove();
+
+        // Calculate duration & play Eridian chords
+        const durationMs = Math.max(reply.length * 50, 800);
+        playEridianChords(durationMs);
+
+        // Append Rocky bubble with audio bars
+        appendMsg('rocky', reply, durationMs);
+      } catch (err) {
+        typingEl.remove();
+        appendMsg('rocky', `Sad. Error happen, friend: ${err.message}`);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ----- DOM Helpers -----
+
+    function appendMsg(role, text, audioDurationMs) {
+      const div = document.createElement('div');
+      div.className = `msg ${role}`;
+
+      const label = document.createElement('span');
+      label.className = 'msg-label';
+      label.textContent = role === 'rocky' ? '🕷️ Rocky' : 'You';
+      div.appendChild(label);
+
+      const body = document.createElement('span');
+      body.innerHTML = formatText(text);
+      div.appendChild(body);
+
+      // Show animated audio bars during playback
+      if (role === 'rocky' && audioDurationMs) {
+        const bars = createAudioBars();
+        div.appendChild(bars);
+        setTimeout(() => bars.remove(), audioDurationMs);
+      }
+
+      chatContainer.appendChild(div);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function formatText(text) {
+      // Render *actions* in italic
+      return text.replace(/\*([^*]+)\*/g, '<em>*$1*</em>');
+    }
+
+    function createAudioBars() {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'audio-bars';
+      for (let i = 0; i < 7; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        wrapper.appendChild(bar);
+      }
+      return wrapper;
+    }
+
+    function showTypingIndicator() {
+      const div = document.createElement('div');
+      div.className = 'msg rocky';
+      div.innerHTML = `
+        <span class="msg-label">🕷️ Rocky</span>
+        <div class="typing-indicator">
+          <span></span><span></span><span></span>
+        </div>
+      `;
+      chatContainer.appendChild(div);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+      return div;
+    }
+
+    function setLoading(state) {
+      sendBtn.disabled = state;
+      msgInput.disabled = state;
+      if (!state) msgInput.focus();
+    }
+
+    // ================================================================
+    // Eridian Chord Synthesizer (Web Audio API)
+    // ================================================================
+
+    /**
+     * Plays 3 overlapping sine-wave oscillators that shift pitch
+     * every 200 ms to simulate Eridian alien vocal chords.
+     *
+     * @param {number} durationMs  Total playback time in milliseconds.
+     */
+    function playEridianChords(durationMs) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+
+      const ctx = new AudioCtx();
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(0.18, ctx.currentTime);
+      masterGain.connect(ctx.destination);
+
+      // Fade out near the end
+      const fadeStart = Math.max(durationMs - 400, 0) / 1000;
+      const fadeEnd   = durationMs / 1000;
+      masterGain.gain.setValueAtTime(0.18, ctx.currentTime + fadeStart);
+      masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + fadeEnd);
+
+      // Three oscillators with harmonic ratios
+      const ratios = [1, 1.25, 1.5];
+      const oscillators = ratios.map(ratio => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.33, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start();
+        return { osc, gain, ratio };
+      });
+
+      // Change base pitch every 200ms
+      const intervalId = setInterval(() => {
+        const baseFreq = 220 + Math.random() * 330;  // 220–550 Hz
+        oscillators.forEach(({ osc, ratio }) => {
+          osc.frequency.setTargetAtTime(baseFreq * ratio, ctx.currentTime, 0.05);
+        });
+      }, 200);
+
+      // Stop everything when done
+      setTimeout(() => {
+        clearInterval(intervalId);
+        oscillators.forEach(({ osc }) => {
+          try { osc.stop(); } catch (_) { /* already stopped */ }
+        });
+        ctx.close();
+      }, durationMs);
+    }
+  </script>
+</body>
+</html>
