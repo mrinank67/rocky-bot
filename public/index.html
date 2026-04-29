@@ -100,6 +100,40 @@
     }
 
     /* ===================================================================
+       Landing Mode (centered input like ChatGPT)
+       =================================================================== */
+    #app.landing header {
+      display: none;
+    }
+
+    #app.landing #chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #app.landing .input-area {
+      border-top: none;
+      background: transparent;
+      backdrop-filter: none;
+      padding-bottom: 80px;
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Transition from landing to chat */
+    header {
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .input-area {
+      transition: padding 0.4s ease, background 0.3s ease;
+    }
+
+    /* ===================================================================
        Header
        =================================================================== */
     header {
@@ -312,12 +346,18 @@
     /* ===================================================================
        Audio Visualizer Bar (inline in Rocky messages)
        =================================================================== */
+    .audio-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
     .audio-bars {
       display: flex;
       align-items: flex-end;
       gap: 3px;
       height: 18px;
-      margin-top: 8px;
     }
 
     .audio-bars .bar {
@@ -337,6 +377,50 @@
 
     @keyframes bar-dance {
       to { height: 18px; opacity: 0.7; }
+    }
+
+    /* Speaker replay button */
+    .speaker-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      background: var(--bg-input);
+      color: var(--rocky);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+      margin-top: 8px;
+    }
+
+    .speaker-btn:hover {
+      background: var(--rocky-dim);
+      border-color: var(--rocky);
+      transform: scale(1.1);
+    }
+
+    .speaker-btn:active {
+      transform: scale(0.95);
+    }
+
+    .speaker-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .speaker-btn.playing {
+      color: var(--accent);
+      border-color: var(--accent);
+      animation: pulse-speaker 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse-speaker {
+      0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+      50%      { box-shadow: 0 0 8px 3px var(--accent-glow); }
     }
 
     /* ===================================================================
@@ -424,7 +508,7 @@
   </style>
 </head>
 <body>
-  <div id="app">
+  <div id="app" class="landing">
     <!-- Header -->
     <header>
       <div class="avatar" aria-label="Rocky avatar"><img src="rocky-icon.png" alt="Rocky" /></div>
@@ -497,6 +581,12 @@
       const text = msgInput.value.trim();
       if (!text) return;
 
+      // Exit landing mode on first message
+      const appEl = document.getElementById('app');
+      if (appEl.classList.contains('landing')) {
+        appEl.classList.remove('landing');
+      }
+
       // Remove welcome card if present
       const welcome = document.querySelector('.welcome-card');
       if (welcome) welcome.remove();
@@ -558,11 +648,30 @@
       body.innerHTML = formatText(text);
       div.appendChild(body);
 
-      // Show animated audio bars during playback
+      // Show animated audio bars during playback + speaker replay
       if (role === 'rocky' && audioDurationMs) {
+        const audioRow = document.createElement('div');
+        audioRow.className = 'audio-row';
+
         const bars = createAudioBars();
-        div.appendChild(bars);
-        setTimeout(() => bars.remove(), audioDurationMs);
+        audioRow.appendChild(bars);
+
+        const speakerBtn = createSpeakerBtn(audioDurationMs);
+        audioRow.appendChild(speakerBtn);
+
+        div.appendChild(audioRow);
+
+        // Remove bars after playback, keep speaker button
+        setTimeout(() => {
+          bars.remove();
+          // Move speaker out of audio-row if it's the only child
+          if (audioRow.children.length <= 1) {
+            div.appendChild(speakerBtn);
+            audioRow.remove();
+          }
+        }, audioDurationMs);
+      } else if (role === 'rocky') {
+        // Error messages — no audio, but still add a speaker for fun
       }
 
       chatContainer.appendChild(div);
@@ -583,6 +692,20 @@
         wrapper.appendChild(bar);
       }
       return wrapper;
+    }
+
+    function createSpeakerBtn(durationMs) {
+      const btn = document.createElement('button');
+      btn.className = 'speaker-btn';
+      btn.title = 'Replay Rocky\'s voice';
+      btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>';
+      btn.addEventListener('click', () => {
+        if (btn.classList.contains('playing')) return;
+        btn.classList.add('playing');
+        playEridianChords(durationMs);
+        setTimeout(() => btn.classList.remove('playing'), durationMs);
+      });
+      return btn;
     }
 
     function showTypingIndicator() {
