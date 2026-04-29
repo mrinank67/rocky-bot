@@ -85,6 +85,18 @@
       to { background-position: 500px 1000px, -300px 600px, 400px -500px, -200px 800px, 600px 400px, -400px -300px; }
     }
 
+    /* Eridian Geometry Overlay (Hexagonal/Base-6 math) */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.04;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='103.92304845413264' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 25.98076211353316 L30 8.660254037844387 L60 25.98076211353316 L60 60.6217782649107 L30 77.94228634059948 L0 60.6217782649107 Z M30 112.58330541628825 L60 95.26279734059948 L90 112.58330541628825 L90 147.2243215676658 L60 164.54482964335458 L30 147.2243215676658 Z' fill='none' stroke='%23d4a057' stroke-width='1'/%3E%3C/svg%3E");
+      background-size: 60px 103.92px;
+    }
+
     /* ===================================================================
        App Shell
        =================================================================== */
