@@ -349,8 +349,10 @@
     .audio-row {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-top: 8px;
+      gap: 10px;
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
     }
 
     .audio-bars {
@@ -364,16 +366,28 @@
       width: 3px;
       border-radius: 2px;
       background: var(--rocky);
+      transition: height 0.3s ease, opacity 0.3s ease;
+    }
+
+    /* Idle state: static dots */
+    .audio-bars.idle .bar {
+      height: 4px !important;
+      opacity: 0.35;
+      animation: none;
+    }
+
+    /* Playing state: animated bars */
+    .audio-bars.playing .bar {
       animation: bar-dance 0.6s ease-in-out infinite alternate;
     }
 
-    .audio-bars .bar:nth-child(1) { height: 6px;  animation-delay: 0s; }
-    .audio-bars .bar:nth-child(2) { height: 12px; animation-delay: 0.1s; }
-    .audio-bars .bar:nth-child(3) { height: 8px;  animation-delay: 0.2s; }
-    .audio-bars .bar:nth-child(4) { height: 16px; animation-delay: 0.3s; }
-    .audio-bars .bar:nth-child(5) { height: 10px; animation-delay: 0.15s; }
-    .audio-bars .bar:nth-child(6) { height: 14px; animation-delay: 0.25s; }
-    .audio-bars .bar:nth-child(7) { height: 7px;  animation-delay: 0.05s; }
+    .audio-bars.playing .bar:nth-child(1) { height: 6px;  animation-delay: 0s; }
+    .audio-bars.playing .bar:nth-child(2) { height: 12px; animation-delay: 0.1s; }
+    .audio-bars.playing .bar:nth-child(3) { height: 8px;  animation-delay: 0.2s; }
+    .audio-bars.playing .bar:nth-child(4) { height: 16px; animation-delay: 0.3s; }
+    .audio-bars.playing .bar:nth-child(5) { height: 10px; animation-delay: 0.15s; }
+    .audio-bars.playing .bar:nth-child(6) { height: 14px; animation-delay: 0.25s; }
+    .audio-bars.playing .bar:nth-child(7) { height: 7px;  animation-delay: 0.05s; }
 
     @keyframes bar-dance {
       to { height: 18px; opacity: 0.7; }
@@ -648,30 +662,25 @@
       body.innerHTML = formatText(text);
       div.appendChild(body);
 
-      // Show animated audio bars during playback + speaker replay
+      // Show audio bars + speaker replay button
       if (role === 'rocky' && audioDurationMs) {
         const audioRow = document.createElement('div');
         audioRow.className = 'audio-row';
 
         const bars = createAudioBars();
+        bars.classList.add('playing');
         audioRow.appendChild(bars);
 
-        const speakerBtn = createSpeakerBtn(audioDurationMs);
+        const speakerBtn = createSpeakerBtn(audioDurationMs, bars);
         audioRow.appendChild(speakerBtn);
 
         div.appendChild(audioRow);
 
-        // Remove bars after playback, keep speaker button
+        // After playback, switch bars to idle dots
         setTimeout(() => {
-          bars.remove();
-          // Move speaker out of audio-row if it's the only child
-          if (audioRow.children.length <= 1) {
-            div.appendChild(speakerBtn);
-            audioRow.remove();
-          }
+          bars.classList.remove('playing');
+          bars.classList.add('idle');
         }, audioDurationMs);
-      } else if (role === 'rocky') {
-        // Error messages — no audio, but still add a speaker for fun
       }
 
       chatContainer.appendChild(div);
@@ -694,7 +703,7 @@
       return wrapper;
     }
 
-    function createSpeakerBtn(durationMs) {
+    function createSpeakerBtn(durationMs, bars) {
       const btn = document.createElement('button');
       btn.className = 'speaker-btn';
       btn.title = 'Replay Rocky\'s voice';
@@ -702,8 +711,14 @@
       btn.addEventListener('click', () => {
         if (btn.classList.contains('playing')) return;
         btn.classList.add('playing');
+        bars.classList.remove('idle');
+        bars.classList.add('playing');
         playEridianChords(durationMs);
-        setTimeout(() => btn.classList.remove('playing'), durationMs);
+        setTimeout(() => {
+          btn.classList.remove('playing');
+          bars.classList.remove('playing');
+          bars.classList.add('idle');
+        }, durationMs);
       });
       return btn;
     }
