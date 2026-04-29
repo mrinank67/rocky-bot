@@ -16,20 +16,7 @@ A serverless chatbot featuring **Rocky**, the beloved Eridian alien from Andy We
 | **Frontend** | Vanilla HTML/JS/CSS, Web Audio API            |
 | **Deploy**   | Vercel Serverless Functions                   |
 
-## 📁 Project Structure
 
-```
-rocky-bot/
-├── api/
-│   └── index.py          # FastAPI app (Vercel serverless function)
-├── public/
-│   ├── index.html        # Chat UI + Eridian chord synthesizer
-│   └── rocky-icon.png    # Custom Rocky avatar
-├── requirements.txt      # Python dependencies
-└── vercel.json           # Vercel build & routing config
-```
-
----
 
 ## 🎵 Eridian Chords
 
