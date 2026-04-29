@@ -16,30 +16,30 @@
        Design Tokens
        =================================================================== */
     :root {
-      /* Palette — deep-space purples & alien greens */
-      --bg-primary:    #0a0b12;
-      --bg-secondary:  #12131f;
-      --bg-card:       #181a2a;
-      --bg-input:      #1e2035;
-      --border:        rgba(255, 255, 255, 0.06);
-      --border-focus:  rgba(120, 200, 255, 0.35);
+      /* Palette — warm Eridian browns & beige */
+      --bg-primary:    #0f0d0a;
+      --bg-secondary:  #1a1610;
+      --bg-card:       #211d15;
+      --bg-input:      #2a2519;
+      --border:        rgba(210, 180, 140, 0.10);
+      --border-focus:  rgba(210, 170, 110, 0.35);
 
-      --text-primary:  #e8eaf0;
-      --text-secondary:#8b8fa8;
-      --text-muted:    #555874;
+      --text-primary:  #ede6da;
+      --text-secondary:#a89e8a;
+      --text-muted:    #6b6050;
 
-      --accent:        #6ee7b7;         /* alien green */
-      --accent-dim:    rgba(110,231,183,0.12);
-      --accent-glow:   rgba(110,231,183,0.25);
+      --accent:        #d4a057;         /* warm gold */
+      --accent-dim:    rgba(212,160,87,0.12);
+      --accent-glow:   rgba(212,160,87,0.25);
 
-      --rocky:         #a78bfa;         /* Eridian purple */
-      --rocky-dim:     rgba(167,139,250,0.10);
-      --rocky-glow:    rgba(167,139,250,0.20);
+      --rocky:         #c8a47a;         /* Eridian beige-brown */
+      --rocky-dim:     rgba(200,164,122,0.10);
+      --rocky-glow:    rgba(200,164,122,0.25);
 
-      --user:          #60a5fa;         /* human blue */
-      --user-dim:      rgba(96,165,250,0.10);
+      --user:          #8bb0d4;         /* soft sky blue */
+      --user-dim:      rgba(139,176,212,0.10);
 
-      --danger:        #f87171;
+      --danger:        #e07a5f;
       --radius:        14px;
       --radius-sm:     10px;
       --font:          'Outfit', system-ui, sans-serif;
@@ -71,12 +71,12 @@
       inset: 0;
       z-index: 0;
       background:
-        radial-gradient(1.2px 1.2px at 20% 30%, rgba(110,231,183,0.25) 50%, transparent 50%),
-        radial-gradient(1px   1px   at 60% 70%, rgba(167,139,250,0.20) 50%, transparent 50%),
-        radial-gradient(0.8px 0.8px at 80% 20%, rgba(96,165,250,0.18)  50%, transparent 50%),
-        radial-gradient(1px   1px   at 40% 80%, rgba(255,255,255,0.08) 50%, transparent 50%),
-        radial-gradient(0.6px 0.6px at 10% 60%, rgba(110,231,183,0.15) 50%, transparent 50%),
-        radial-gradient(1.5px 1.5px at 90% 50%, rgba(167,139,250,0.12) 50%, transparent 50%);
+        radial-gradient(1.2px 1.2px at 20% 30%, rgba(212,160,87,0.20)  50%, transparent 50%),
+        radial-gradient(1px   1px   at 60% 70%, rgba(200,164,122,0.16) 50%, transparent 50%),
+        radial-gradient(0.8px 0.8px at 80% 20%, rgba(180,140,90,0.14)  50%, transparent 50%),
+        radial-gradient(1px   1px   at 40% 80%, rgba(255,240,220,0.06) 50%, transparent 50%),
+        radial-gradient(0.6px 0.6px at 10% 60%, rgba(212,160,87,0.12)  50%, transparent 50%),
+        radial-gradient(1.5px 1.5px at 90% 50%, rgba(200,164,122,0.10) 50%, transparent 50%);
       background-size: 250px 250px, 300px 300px, 200px 200px, 350px 350px, 280px 280px, 320px 320px;
       animation: drift 90s linear infinite;
     }
@@ -110,20 +110,26 @@
       padding: 20px 24px 16px;
       border-bottom: 1px solid var(--border);
       backdrop-filter: blur(20px);
-      background: rgba(10,11,18,0.75);
+      background: rgba(15,13,10,0.80);
     }
 
     .avatar {
       width: 48px;
       height: 48px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--rocky), var(--accent));
+      background: var(--bg-card);
       display: grid;
       place-items: center;
-      font-size: 22px;
       box-shadow: 0 0 24px var(--rocky-glow);
       animation: pulse-glow 3s ease-in-out infinite;
       flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     @keyframes pulse-glow {
@@ -209,8 +215,8 @@
 
     .msg.user {
       align-self: flex-end;
-      background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(96,165,250,0.05));
-      border: 1px solid rgba(96,165,250,0.15);
+      background: linear-gradient(135deg, rgba(139,176,212,0.10), rgba(139,176,212,0.04));
+      border: 1px solid rgba(139,176,212,0.12);
       border-right: 3px solid var(--user);
       color: var(--text-primary);
     }
@@ -341,7 +347,7 @@
       padding: 16px 20px 24px;
       border-top: 1px solid var(--border);
       backdrop-filter: blur(20px);
-      background: rgba(10,11,18,0.80);
+      background: rgba(15,13,10,0.85);
     }
 
     .input-row {
@@ -421,7 +427,7 @@
   <div id="app">
     <!-- Header -->
     <header>
-      <div class="avatar" aria-label="Rocky avatar">🕷️</div>
+      <div class="avatar" aria-label="Rocky avatar"><img src="rocky-icon.png" alt="Rocky" /></div>
       <div class="header-text">
         <h1>Rocky</h1>
         <p>Eridian Engineer · 40 Eridani</p>
@@ -432,7 +438,7 @@
     <!-- Chat Messages -->
     <div id="chat-container">
       <div class="welcome-card">
-        <div class="emoji">🌌</div>
+        <div class="emoji"><img src="rocky-icon.png" alt="Rocky" style="width:64px;height:64px;border-radius:50%;" /></div>
         <h2>Good good good, friend!</h2>
         <p>Rocky here. I am Eridian from star 40 Eridani. I solve problems. You have question? I help! <em>*tap tap tap*</em></p>
         <div class="suggestions">
@@ -545,7 +551,7 @@
 
       const label = document.createElement('span');
       label.className = 'msg-label';
-      label.textContent = role === 'rocky' ? '🕷️ Rocky' : 'You';
+      label.textContent = role === 'rocky' ? 'Rocky' : 'You';
       div.appendChild(label);
 
       const body = document.createElement('span');
@@ -583,7 +589,7 @@
       const div = document.createElement('div');
       div.className = 'msg rocky';
       div.innerHTML = `
-        <span class="msg-label">🕷️ Rocky</span>
+        <span class="msg-label">Rocky</span>
         <div class="typing-indicator">
           <span></span><span></span><span></span>
         </div>
