@@ -521,8 +521,10 @@
         // Remove typing indicator
         typingEl.remove();
 
-        // Calculate duration & play Eridian chords
-        const durationMs = Math.max(reply.length * 50, 800);
+        // Random duration: mostly 1–2s, occasionally up to 3s
+        const durationMs = Math.random() < 0.25
+          ? 2000 + Math.random() * 1000   // 25% chance: 2–3s
+          : 1000 + Math.random() * 1000;  // 75% chance: 1–2s
         playEridianChords(durationMs);
 
         // Append Rocky bubble with audio bars
@@ -602,55 +604,107 @@
     // ================================================================
 
     /**
-     * Plays 3 overlapping sine-wave oscillators that shift pitch
-     * every 200 ms to simulate Eridian alien vocal chords.
+     * Generate a reverb impulse response buffer (synthetic room reverb).
+     * Creates a decaying noise burst to use with ConvolverNode.
+     */
+    function createReverbImpulse(ctx, duration = 1.5, decay = 2.5) {
+      const sampleRate = ctx.sampleRate;
+      const length = sampleRate * duration;
+      const impulse = ctx.createBuffer(2, length, sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const data = impulse.getChannelData(ch);
+        for (let i = 0; i < length; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+        }
+      }
+      return impulse;
+    }
+
+    /**
+     * Plays 3 overlapping sine-wave oscillators with:
+     *  - Natural volume swells (sine-wave LFO modulation)
+     *  - Convolution reverb for spacey depth
+     *  - Smooth fade-in / fade-out envelope
+     *  - Pitch shifts every 200ms
      *
-     * @param {number} durationMs  Total playback time in milliseconds.
+     * @param {number} durationMs  Total playback time in milliseconds (1–3s).
      */
     function playEridianChords(durationMs) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return;
 
       const ctx = new AudioCtx();
+      const t   = ctx.currentTime;
+      const dur = durationMs / 1000;
+
+      // --- Master gain with fade-in / fade-out envelope ---
       const masterGain = ctx.createGain();
-      masterGain.gain.setValueAtTime(0.18, ctx.currentTime);
-      masterGain.connect(ctx.destination);
+      const peakVol = 0.22;
+      const fadeIn  = Math.min(0.15, dur * 0.1);
+      const fadeOut = Math.min(0.5, dur * 0.25);
+      masterGain.gain.setValueAtTime(0, t);
+      masterGain.gain.linearRampToValueAtTime(peakVol, t + fadeIn);
+      masterGain.gain.setValueAtTime(peakVol, t + dur - fadeOut);
+      masterGain.gain.linearRampToValueAtTime(0, t + dur);
 
-      // Fade out near the end
-      const fadeStart = Math.max(durationMs - 400, 0) / 1000;
-      const fadeEnd   = durationMs / 1000;
-      masterGain.gain.setValueAtTime(0.18, ctx.currentTime + fadeStart);
-      masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + fadeEnd);
+      // --- Convolution reverb (wet/dry mix) ---
+      const convolver = ctx.createConvolver();
+      convolver.buffer = createReverbImpulse(ctx, 1.5, 2.5);
 
-      // Three oscillators with harmonic ratios
+      const dryGain = ctx.createGain();
+      dryGain.gain.setValueAtTime(0.7, t);
+
+      const wetGain = ctx.createGain();
+      wetGain.gain.setValueAtTime(0.35, t);
+
+      // Routing: masterGain → dry → destination
+      //          masterGain → convolver → wet → destination
+      masterGain.connect(dryGain);
+      dryGain.connect(ctx.destination);
+
+      masterGain.connect(convolver);
+      convolver.connect(wetGain);
+      wetGain.connect(ctx.destination);
+
+      // --- LFO for natural volume breathing ---
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.type = 'sine';
+      lfo.frequency.setValueAtTime(1.8 + Math.random() * 2.2, t); // 1.8–4 Hz
+      lfoGain.gain.setValueAtTime(0.08, t); // subtle ±0.08 modulation
+      lfo.connect(lfoGain);
+      lfoGain.connect(masterGain.gain);
+      lfo.start(t);
+      lfo.stop(t + dur + 0.5);
+
+      // --- Three oscillators with harmonic ratios ---
       const ratios = [1, 1.25, 1.5];
-      const oscillators = ratios.map(ratio => {
+      const oscillators = ratios.map((ratio, idx) => {
         const osc  = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        gain.gain.setValueAtTime(0.33, ctx.currentTime);
+        // Slightly different volumes per voice for richness
+        gain.gain.setValueAtTime([0.38, 0.30, 0.25][idx], t);
         osc.connect(gain);
         gain.connect(masterGain);
-        osc.start();
+        osc.start(t);
+        osc.stop(t + dur + 0.2);
         return { osc, gain, ratio };
       });
 
-      // Change base pitch every 200ms
+      // --- Pitch shifts every 200ms ---
       const intervalId = setInterval(() => {
         const baseFreq = 220 + Math.random() * 330;  // 220–550 Hz
         oscillators.forEach(({ osc, ratio }) => {
-          osc.frequency.setTargetAtTime(baseFreq * ratio, ctx.currentTime, 0.05);
+          osc.frequency.setTargetAtTime(baseFreq * ratio, ctx.currentTime, 0.06);
         });
       }, 200);
 
-      // Stop everything when done
+      // --- Cleanup ---
       setTimeout(() => {
         clearInterval(intervalId);
-        oscillators.forEach(({ osc }) => {
-          try { osc.stop(); } catch (_) { /* already stopped */ }
-        });
         ctx.close();
-      }, durationMs);
+      }, durationMs + 600); // extra 600ms for reverb tail
     }
   </script>
 </body>
