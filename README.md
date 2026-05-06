@@ -10,13 +10,24 @@ A serverless chatbot featuring **Rocky**, the beloved Eridian alien from Andy We
 
 ## ⚡ Tech Stack
 
-| Layer      | Technology                                    |
-| ---------- | --------------------------------------------- |
+| Layer        | Technology                                              |
+| ------------ | ------------------------------------------------------- |
 | **Backend**  | Python 3.9+, FastAPI, Groq SDK (`llama-3.1-8b-instant`) |
-| **Frontend** | Vanilla HTML/JS/CSS, Web Audio API            |
-| **Deploy**   | Vercel Serverless Functions                   |
+| **Frontend** | Vanilla HTML/JS/CSS, Web Audio API                      |
+| **Deploy**   | Vercel Serverless Functions                             |
+| **RAG**      | HuggingFace API, Pinecone Vector DB                     |
 
+---
 
+## 📚 RAG (Retrieval-Augmented Generation)
+
+Rocky has read the book! This chatbot features a RAG pipeline that allows Rocky to query the actual text of *Project Hail Mary*.
+
+- **Embeddings**: Uses the HuggingFace Inference API (`sentence-transformers/all-MiniLM-L6-v2`) to embed user queries in real-time.
+- **Vector Search**: Queries a serverless **Pinecone** database containing ~1,300 text chunks extracted directly from the book PDF.
+- **Context Injection**: Relevant paragraphs are seamlessly injected into the LLM system prompt, allowing Rocky to accurately recall characters (like his mate Adrian), events, and Eridian engineering details.
+
+---
 
 ## 🎵 Eridian Chords
 
@@ -35,6 +46,7 @@ No external audio files or TTS services are used — it's pure synthesis in the 
 ## 👽 The Experience
 
 The interface is styled with a custom Eridian aesthetic:
+
 - **Warm brown and beige tones** reflecting Rocky's rocky exterior.
 - **Drifting starfield** background for deep-space immersion.
 - **Broken English persona**: The AI is strictly prompted to use Rocky's fragmented grammar, drop articles, and use emotion words like *Amaze!* and *Sad.*
